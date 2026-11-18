@@ -25,6 +25,7 @@ public final class Main {
     private static NexoServer embedded;
 
     public static void main(String[] args) throws Exception {
+        preloadClasses();
         String mode = args.length > 0 ? args[0].toLowerCase() : "";
         if (mode.equals("server")) {
             NexoServer.main(args.length > 1 ? new String[]{args[1]} : new String[0]);
@@ -41,6 +42,34 @@ public final class Main {
                 SwingUtilities.invokeLater(() -> new LoginFrame(host, port, null, null).setVisible(true));
             }
             default -> SwingUtilities.invokeLater(() -> new Launcher().setVisible(true));
+        }
+    }
+
+    /**
+     * Carga en memoria todas las clases de Nexo al arrancar. Así, si mientras la app está
+     * abierta se ejecuta otra vez run.bat (que borra y recompila la carpeta out), esta
+     * instancia sigue funcionando en vez de perder clases y cerrar la conexión.
+     */
+    private static void preloadClasses() {
+        try {
+            java.net.URL loc = Main.class.getProtectionDomain().getCodeSource().getLocation();
+            java.nio.file.Path root = java.nio.file.Path.of(loc.toURI());
+            if (!java.nio.file.Files.isDirectory(root)) return;
+            java.util.List<String> names = new java.util.ArrayList<>();
+            try (var files = java.nio.file.Files.walk(root)) {
+                files.filter(f -> f.toString().endsWith(".class")).forEach(f -> {
+                    String rel = root.relativize(f).toString();
+                    names.add(rel.substring(0, rel.length() - 6).replace(java.io.File.separatorChar, '.'));
+                });
+            }
+            ClassLoader cl = Main.class.getClassLoader();
+            for (String n : names) {
+                try {
+                    Class.forName(n, false, cl);
+                } catch (Throwable ignored) {
+                }
+            }
+        } catch (Exception ignored) {
         }
     }
 
