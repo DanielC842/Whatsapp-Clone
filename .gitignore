@@ -1,0 +1,12 @@
+# Compilación
+out/
+target/
+*.class
+# Datos locales del servidor (usuarios y mensajes de cada PC)
+nexo-data/
+# IDEs
+.idea/
+*.iml
+.vscode/
+nbproject/private/
+.DS_Store
