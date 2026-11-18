@@ -28,7 +28,7 @@ final class ChatView extends JPanel {
     private final JLabel subtitle = new JLabel();
     private final MessagesPanel messages = new MessagesPanel();
     private final JScrollPane scroll;
-    private final JTextField input = Theme.textField("Escribe un mensaje");
+    private final MessageInput input = new MessageInput("Escribe un mensaje");
 
     private boolean typingSent;
     private final Timer typingStop;
@@ -66,14 +66,33 @@ final class ChatView extends JPanel {
         JPanel bar = new JPanel(new BorderLayout(8, 0));
         bar.setBackground(Theme.PRIMARY_LIGHT);
         bar.setBorder(new EmptyBorder(10, 12, 10, 12));
-        JButton attach = Theme.iconButton(Icons.attach(24, Theme.MUTED), "Adjuntar imagen o archivo");
+        JButton emoji = Theme.iconButton(Icons.smiley(24, Theme.MUTED), "Emojis");
+        EmojiPicker picker = new EmojiPicker(input);
+        emoji.addActionListener(e -> picker.showAbove(emoji));
+        JButton attach = Theme.iconButton(Icons.attach(24, Theme.MUTED), "Adjuntar imagen o archivo (o arrástralo aquí)");
         attach.addActionListener(e -> attachFile());
-        JButton send = Theme.iconButton(Icons.send(22, Theme.PRIMARY), "Enviar");
+        JButton send = Theme.iconButton(Icons.send(22, Theme.PRIMARY), "Enviar (Enter)");
         send.addActionListener(e -> sendText());
-        input.addActionListener(e -> sendText());
-        bar.add(attach, BorderLayout.WEST);
+        input.setOnSend(this::sendText);
+        JPanel leftButtons = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        leftButtons.setOpaque(false);
+        leftButtons.add(emoji);
+        leftButtons.add(attach);
+        JPanel sendWrap = new JPanel(new BorderLayout());
+        sendWrap.setOpaque(false);
+        sendWrap.add(send, BorderLayout.SOUTH);
+        JPanel leftWrap = new JPanel(new BorderLayout());
+        leftWrap.setOpaque(false);
+        leftWrap.add(leftButtons, BorderLayout.SOUTH);
+        bar.add(leftWrap, BorderLayout.WEST);
         bar.add(input, BorderLayout.CENTER);
-        bar.add(send, BorderLayout.EAST);
+        bar.add(sendWrap, BorderLayout.EAST);
+
+        // Arrastrar y soltar archivos sobre el chat para enviarlos
+        TransferHandler drop = new FileDropHandler(this::sendFiles);
+        setTransferHandler(drop);
+        messages.setTransferHandler(drop);
+        scroll.setTransferHandler(drop);
         add(bar, BorderLayout.SOUTH);
 
         typingStop = new Timer(2500, e -> setTyping(false));
@@ -115,7 +134,11 @@ final class ChatView extends JPanel {
         Chat c = store.chats.get(chatId);
         if (c == null) return;
         String name = store.chatTitle(c);
-        avatar.setIcon(Theme.avatar(c.group ? c.id : c.otherMember(store.me.username), name, 42, c.group));
+        if (c.group) avatar.setIcon(Theme.avatar(c.id, name, 42, true));
+        else {
+            String other = c.otherMember(store.me.username);
+            avatar.setIcon(Theme.userAvatar(store.users.get(other), other, name, 42));
+        }
         title.setText(name);
 
         List<String> typing = store.typingIn(chatId);
@@ -230,22 +253,64 @@ final class ChatView extends JPanel {
         if (chatId == null) return;
         JFileChooser fc = new JFileChooser();
         fc.setDialogTitle("Enviar imagen o archivo");
+        fc.setMultiSelectionEnabled(true);
         if (fc.showOpenDialog(this) != JFileChooser.APPROVE_OPTION) return;
-        File f = fc.getSelectedFile();
-        try {
+        sendFiles(java.util.Arrays.asList(fc.getSelectedFiles()));
+    }
+
+    /** Envía uno o varios archivos al chat abierto (el texto escrito va como pie del primero). */
+    private void sendFiles(List<File> files) {
+        if (chatId == null || files.isEmpty()) return;
+        String caption = input.getText().trim();
+        boolean captionUsed = false;
+        for (File f : files) {
+            if (!f.isFile()) continue;
             if (f.length() > Protocol.MAX_FILE_BYTES) {
-                JOptionPane.showMessageDialog(this, "El archivo pesa más de " + Theme.fileSize(Protocol.MAX_FILE_BYTES) + ".");
-                return;
+                JOptionPane.showMessageDialog(this, "\"" + f.getName() + "\" pesa más de "
+                        + Theme.fileSize(Protocol.MAX_FILE_BYTES) + " y no se puede enviar.");
+                continue;
             }
-            byte[] data = Files.readAllBytes(f.toPath());
-            String n = f.getName().toLowerCase(Locale.ROOT);
-            boolean image = n.endsWith(".png") || n.endsWith(".jpg") || n.endsWith(".jpeg") || n.endsWith(".gif") || n.endsWith(".bmp");
-            String caption = input.getText();
-            input.setText("");
-            conn.send(new Packet(Packet.Type.SEND_MESSAGE).put("chatId", chatId).put("text", caption)
-                    .put("fileName", f.getName()).put("fileData", data).put("image", image));
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "No se pudo leer el archivo: " + ex.getMessage());
+            try {
+                byte[] data = Files.readAllBytes(f.toPath());
+                String n = f.getName().toLowerCase(Locale.ROOT);
+                boolean image = n.endsWith(".png") || n.endsWith(".jpg") || n.endsWith(".jpeg")
+                        || n.endsWith(".gif") || n.endsWith(".bmp");
+                conn.send(new Packet(Packet.Type.SEND_MESSAGE).put("chatId", chatId)
+                        .put("text", captionUsed ? "" : caption)
+                        .put("fileName", f.getName()).put("fileData", data).put("image", image));
+                captionUsed = true;
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "No se pudo leer " + f.getName() + ": " + ex.getMessage());
+            }
+        }
+        if (captionUsed) input.setText("");
+    }
+
+    /** Recibe archivos arrastrados desde el explorador. */
+    private static final class FileDropHandler extends TransferHandler {
+        private final java.util.function.Consumer<List<File>> sink;
+
+        FileDropHandler(java.util.function.Consumer<List<File>> sink) {
+            this.sink = sink;
+        }
+
+        @Override
+        public boolean canImport(TransferSupport s) {
+            return s.isDataFlavorSupported(java.awt.datatransfer.DataFlavor.javaFileListFlavor);
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public boolean importData(TransferSupport s) {
+            if (!canImport(s)) return false;
+            try {
+                List<File> files = (List<File>) s.getTransferable()
+                        .getTransferData(java.awt.datatransfer.DataFlavor.javaFileListFlavor);
+                SwingUtilities.invokeLater(() -> sink.accept(files));
+                return true;
+            } catch (Exception e) {
+                return false;
+            }
         }
     }
 

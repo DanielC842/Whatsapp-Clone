@@ -52,11 +52,23 @@ public final class Theme {
     private Theme() {
     }
 
+    /** Fuente para emojis (en Windows, "Segoe UI Emoji"). */
+    public static Font emojiFont(float size) {
+        return new Font(EMOJI_FAMILY, Font.PLAIN, Math.round(size));
+    }
+
+    /** true si el carácter no se puede dibujar con la fuente base y necesita la de emojis. */
+    public static boolean needsEmojiFont(Font base, int codePoint) {
+        return codePoint > 0x2000 && !base.canDisplay(codePoint);
+    }
+
     public static Font font(int style, float size) {
         return new Font(BASE_FAMILY, style, Math.round(size));
     }
 
     public static void installDefaults() {
+        java.util.Locale.setDefault(java.util.Locale.forLanguageTag("es"));
+        JComponent.setDefaultLocale(java.util.Locale.forLanguageTag("es"));
         try {
             UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
         } catch (Exception ignored) {
@@ -68,6 +80,10 @@ public final class Theme {
             UIManager.put(k, f);
         }
         UIManager.put("Button.focus", new Color(0, 0, 0, 0));
+        UIManager.put("OptionPane.okButtonText", "Aceptar");
+        UIManager.put("OptionPane.cancelButtonText", "Cancelar");
+        UIManager.put("OptionPane.yesButtonText", "Sí");
+        UIManager.put("OptionPane.noButtonText", "No");
         UIManager.put("CheckBox.focus", new Color(0, 0, 0, 0));
         UIManager.put("ScrollBar.width", 10);
         UIManager.put("OptionPane.background", Color.WHITE);
@@ -116,6 +132,62 @@ public final class Theme {
                 return size;
             }
         };
+    }
+
+    private static final Map<byte[], java.awt.image.BufferedImage> PHOTOS = new WeakHashMap<>();
+
+    /** Avatar de un usuario: su foto de perfil si tiene, o el círculo con iniciales. */
+    public static Icon userAvatar(com.nexo.common.UserInfo u, String key, String name, int size) {
+        java.awt.image.BufferedImage img = null;
+        if (u != null && u.avatar != null) {
+            img = PHOTOS.computeIfAbsent(u.avatar, b -> {
+                try {
+                    return javax.imageio.ImageIO.read(new java.io.ByteArrayInputStream(b));
+                } catch (Exception e) {
+                    return null;
+                }
+            });
+        }
+        if (img == null) return avatar(key, name, size, false);
+        final java.awt.image.BufferedImage photo = img;
+        return new Icon() {
+            @Override
+            public void paintIcon(Component c, Graphics g0, int x, int y) {
+                Graphics2D g = (Graphics2D) g0.create();
+                g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+                g.setClip(new java.awt.geom.Ellipse2D.Float(x, y, size, size));
+                g.drawImage(photo, x, y, size, size, null);
+                g.dispose();
+            }
+
+            @Override
+            public int getIconWidth() {
+                return size;
+            }
+
+            @Override
+            public int getIconHeight() {
+                return size;
+            }
+        };
+    }
+
+    /** Recorta una imagen al centro en cuadrado, la reduce a 160x160 y la devuelve en PNG. */
+    public static byte[] toAvatarPng(java.io.File file) throws java.io.IOException {
+        java.awt.image.BufferedImage src = javax.imageio.ImageIO.read(file);
+        if (src == null) throw new java.io.IOException("El archivo no es una imagen válida.");
+        int side = Math.min(src.getWidth(), src.getHeight());
+        java.awt.image.BufferedImage out = new java.awt.image.BufferedImage(160, 160, java.awt.image.BufferedImage.TYPE_INT_RGB);
+        Graphics2D g = out.createGraphics();
+        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+        g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        g.drawImage(src, 0, 0, 160, 160, (src.getWidth() - side) / 2, (src.getHeight() - side) / 2,
+                (src.getWidth() + side) / 2, (src.getHeight() + side) / 2, null);
+        g.dispose();
+        java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
+        javax.imageio.ImageIO.write(out, "png", bos);
+        return bos.toByteArray();
     }
 
     /** Botón plano con esquinas redondeadas. */
@@ -243,7 +315,7 @@ public final class Theme {
         for (int i = 0; i < text.length(); ) {
             int cp = text.codePointAt(i);
             i += Character.charCount(cp);
-            boolean needsEmoji = cp > 0x2000 && !base.canDisplay(cp);
+            boolean needsEmoji = needsEmojiFont(base, cp);
             if (needsEmoji != inEmoji) {
                 sb.append(needsEmoji ? "<font face='" + EMOJI_FAMILY + "'>" : "</font>");
                 inEmoji = needsEmoji;

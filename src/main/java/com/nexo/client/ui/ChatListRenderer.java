@@ -72,7 +72,7 @@ final class ChatListRenderer extends JPanel implements ListCellRenderer<Chat> {
         availableWidth = list.getWidth();
         String title = store.chatTitle(c);
         String key = c.group ? c.id : c.otherMember(store.me.username);
-        avatar.setIcon(Theme.avatar(key, title, 48, c.group));
+        avatar.setIcon(c.group ? Theme.avatar(key, title, 48, true) : Theme.userAvatar(store.users.get(key), key, title, 48));
         name.setText(title);
         UserInfo other = c.group ? null : store.users.get(key);
         onlineDot = other != null && other.online;

@@ -45,7 +45,7 @@ final class UserPickerDialog extends JDialog {
             row.setBorder(new EmptyBorder(6, 4, 6, 4));
             JLabel l = new JLabel("<html><b>" + Theme.toHtml(u.displayName, Theme.font(Font.BOLD, 14)) + "</b><br><span style='color:#6B7280'>@"
                     + u.username + " · " + (u.online ? "en línea" : Theme.toHtml(u.about, Theme.font(Font.PLAIN, 14))) + "</span></html>",
-                    Theme.avatar(u.username, u.displayName, 38, false), SwingConstants.LEFT);
+                    Theme.userAvatar(u, u.username, u.displayName, 38), SwingConstants.LEFT);
             l.setIconTextGap(10);
             JToggleButton cb = group ? new JCheckBox() : new JRadioButton();
             if (!group) single.add(cb);

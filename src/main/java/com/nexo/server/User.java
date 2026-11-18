@@ -19,6 +19,7 @@ final class User implements Serializable {
     final String salt;
     final String passwordHash;
     long lastSeen;
+    byte[] avatar;
 
     User(String username, String displayName, String password) {
         this.username = username;
@@ -35,7 +36,7 @@ final class User implements Serializable {
     }
 
     UserInfo toInfo(boolean online) {
-        return new UserInfo(username, displayName, about, online, lastSeen);
+        return new UserInfo(username, displayName, about, online, lastSeen, avatar);
     }
 
     private static String hash(String password, String salt) {

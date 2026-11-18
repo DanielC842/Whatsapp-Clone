@@ -13,14 +13,21 @@ Se inspira en las apps de chat modernas, con nombre y diseño propios.
 - Mensajes en tiempo real entre varios PCs de la misma red.
 - Estados de mensaje: ✓ enviado, ✓✓ entregado, ✓✓ en azul leído.
 - "En línea", "últ. vez hoy a las…" y "escribiendo…".
-- Envío de **imágenes** (con vista previa) y **archivos** (hasta 8 MB).
-- Contador de no leídos, búsqueda de chats, separadores "Hoy/Ayer", aviso sonoro.
-- Editar nombre visible e info del perfil.
+- Envío de **imágenes** (con vista previa) y **archivos** (hasta 8 MB), también arrastrándolos al chat.
+- Selector de **emojis**.
+- **Foto de perfil**, nombre visible e info editables.
+- Contador de no leídos, búsqueda de chats, separadores "Hoy/Ayer", aviso sonoro y
+  notificación de escritorio cuando la ventana no está activa.
 - Historial guardado en el servidor (`nexo-data/nexo.db`): sobrevive a reinicios.
 
 ## Requisitos
 
-- **JDK 17 o superior** (recomendado: [Eclipse Temurin](https://adoptium.net)). Nada más.
+Ninguno: basta con descargar el repositorio.
+
+- Si el PC ya tiene **Java 17 o superior**, se usa ese.
+- Si no lo tiene, `run.bat` / `run.sh` descargan automáticamente un Java 17 portable
+  (Eclipse Temurin) dentro de la carpeta `.jdk` del proyecto. Solo pasa la primera vez,
+  necesita internet y **no instala nada** en el sistema.
 
 ## Cómo ejecutarlo
 

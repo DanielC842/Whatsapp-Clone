@@ -56,7 +56,8 @@ final class ClientHandler extends Thread {
                     p.str("fileName"), p.get("fileData"), p.bool("image"));
             case MARK_READ -> server.markRead(username, p.str("chatId"));
             case TYPING -> server.typing(username, p.str("chatId"), p.bool("typing"));
-            case UPDATE_PROFILE -> server.updateProfile(username, p.str("displayName"), p.str("about"));
+            case UPDATE_PROFILE -> server.updateProfile(username, p.str("displayName"), p.str("about"),
+                    p.get("avatar"), p.bool("removeAvatar"));
             case LOGOUT -> close();
             default -> { }
         }

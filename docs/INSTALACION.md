@@ -1,8 +1,12 @@
 # Instalación y ejecución de Nexo
 
-Nexo requiere Java 17 o posterior. No necesita dependencias externas. Esta guía cubre Windows, Linux y macOS.
+Nexo necesita Java 17 o posterior, pero **no hace falta instalarlo a mano**: si `run.bat` / `run.sh`
+no encuentran Java 17+, descargan automáticamente un Java portable (Eclipse Temurin) en la carpeta
+`.jdk` del proyecto. Solo ocurre la primera vez y requiere internet. Esta guía cubre Windows, Linux y macOS.
 
-## 1. Instalar Java en Windows
+## 1. (Opcional) Instalar Java en Windows
+
+Solo si prefieres tener Java instalado en el sistema o el PC no tiene internet al ejecutar la app:
 
 1. Descarga el instalador **Eclipse Temurin JDK 17 (LTS) para Windows x64** desde [Adoptium](https://adoptium.net/temurin/releases/).
 2. Ejecuta el instalador y deja habilitadas las opciones para agregar Java al `PATH` y definir `JAVA_HOME`, si aparecen.
@@ -55,6 +59,7 @@ Los scripts compilan el código con `javac` y lo ejecutan; no hace falta Maven n
 
 | Síntoma | Qué revisar |
 | --- | --- |
+| La descarga automática de Java falla | Revisa la conexión a internet (o un proxy de la universidad) e intenta de nuevo; si persiste, instala Java como en el paso 1. |
 | `javac` no se reconoce | Instala Temurin JDK (no solo un runtime), habilita `PATH` y abre una terminal nueva. Comprueba `java -version` y `javac -version`. |
 | El puerto 5050 ya está en uso | Cierra otra instancia de Nexo u otra aplicación que use el puerto y vuelve a iniciar el servidor. |
 | Los clientes no encuentran el servidor | Usa la IPv4 del equipo servidor, confirma que están en la misma red y permite TCP 5050 en el firewall. |

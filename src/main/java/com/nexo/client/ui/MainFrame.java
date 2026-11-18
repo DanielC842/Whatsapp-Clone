@@ -65,6 +65,9 @@ public final class MainFrame extends JFrame {
             @Override
             public void windowClosed(WindowEvent e) {
                 refresher.stop();
+                boolean anyOpen = false;
+                for (Frame f : Frame.getFrames()) if (f != MainFrame.this && f.isDisplayable()) anyOpen = true;
+                if (!anyOpen) Notifier.dispose();
                 conn.send(new Packet(Packet.Type.LOGOUT));
                 conn.close();
             }
@@ -190,15 +193,54 @@ public final class MainFrame extends JFrame {
         name.setText(store.me.displayName);
         JTextField about = Theme.textField("Info");
         about.setText(store.me.about);
-        JPanel p = new JPanel(new GridLayout(4, 1, 0, 4));
-        p.add(new JLabel("Nombre visible"));
-        p.add(name);
-        p.add(new JLabel("Info"));
-        p.add(about);
+        final byte[][] photo = {store.me.avatar};
+        final boolean[] removed = {false};
+        JLabel preview = new JLabel(Theme.userAvatar(store.me, store.me.username, store.me.displayName, 96));
+        preview.setAlignmentX(CENTER_ALIGNMENT);
+        JButton change = Theme.button("Cambiar foto", false);
+        JButton remove = Theme.button("Quitar foto", false);
+        change.addActionListener(e -> {
+            JFileChooser fc = new JFileChooser();
+            fc.setDialogTitle("Elige tu foto de perfil");
+            fc.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("Imágenes", "png", "jpg", "jpeg", "gif", "bmp"));
+            if (fc.showOpenDialog(this) != JFileChooser.APPROVE_OPTION) return;
+            try {
+                photo[0] = Theme.toAvatarPng(fc.getSelectedFile());
+                removed[0] = false;
+                UserInfo tmp = new UserInfo(store.me.username, name.getText(), "", true, 0, photo[0]);
+                preview.setIcon(Theme.userAvatar(tmp, tmp.username, tmp.displayName, 96));
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "No se pudo usar esa imagen: " + ex.getMessage());
+            }
+        });
+        remove.addActionListener(e -> {
+            photo[0] = null;
+            removed[0] = true;
+            preview.setIcon(Theme.avatar(store.me.username, name.getText(), 96, false));
+        });
+        JPanel photoButtons = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 0));
+        photoButtons.setOpaque(false);
+        photoButtons.add(change);
+        photoButtons.add(remove);
+
+        JPanel p = new JPanel();
+        p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
+        p.add(preview);
+        p.add(Box.createVerticalStrut(8));
+        p.add(photoButtons);
+        p.add(Box.createVerticalStrut(12));
+        for (JComponent c : new JComponent[]{new JLabel("Nombre visible"), name, (JComponent) Box.createVerticalStrut(8), new JLabel("Info"), about}) {
+            c.setAlignmentX(CENTER_ALIGNMENT);
+            p.add(c);
+        }
+        p.setPreferredSize(new Dimension(320, p.getPreferredSize().height));
         if (JOptionPane.showConfirmDialog(this, p, "Editar perfil", JOptionPane.OK_CANCEL_OPTION,
                 JOptionPane.PLAIN_MESSAGE) == JOptionPane.OK_OPTION) {
-            conn.send(new Packet(Packet.Type.UPDATE_PROFILE)
-                    .put("displayName", name.getText()).put("about", about.getText()));
+            Packet up = new Packet(Packet.Type.UPDATE_PROFILE)
+                    .put("displayName", name.getText()).put("about", about.getText());
+            if (removed[0]) up.put("removeAvatar", true);
+            else if (photo[0] != null && photo[0] != store.me.avatar) up.put("avatar", photo[0]);
+            conn.send(up);
         }
     }
 
@@ -292,7 +334,16 @@ public final class MainFrame extends JFrame {
         if (!mine && !m.isSystem()) {
             store.unread.merge(m.chatId, 1, Integer::sum);
             if (viewing && isActive()) markCurrentRead();
-            else Toolkit.getDefaultToolkit().beep();
+            else {
+                Toolkit.getDefaultToolkit().beep();
+                if (!isActive()) {
+                    Chat c = store.chats.get(m.chatId);
+                    String who = store.displayName(m.sender);
+                    String title = (c != null && c.group) ? who + " en " + c.name : who;
+                    String body = m.hasFile() ? (m.image ? "Foto" : "Archivo: " + m.fileName) : m.text;
+                    Notifier.show(title, body);
+                }
+            }
         }
         if (viewing) {
             chatView.refreshHeader();
@@ -313,7 +364,7 @@ public final class MainFrame extends JFrame {
     // ----------------------------------------------------- refrescos
 
     private void refreshMe() {
-        meAvatar.setIcon(Theme.avatar(store.me.username, store.me.displayName, 40, false));
+        meAvatar.setIcon(Theme.userAvatar(store.me, store.me.username, store.me.displayName, 40));
         meName.setText(store.me.displayName);
         setTitle(Protocol.APP_NAME + " - " + store.me.displayName);
     }

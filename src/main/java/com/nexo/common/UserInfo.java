@@ -11,12 +11,15 @@ public final class UserInfo implements Serializable {
     public final String about;
     public final boolean online;
     public final long lastSeen;
+    /** Foto de perfil en PNG (puede ser null). */
+    public final byte[] avatar;
 
-    public UserInfo(String username, String displayName, String about, boolean online, long lastSeen) {
+    public UserInfo(String username, String displayName, String about, boolean online, long lastSeen, byte[] avatar) {
         this.username = username;
         this.displayName = displayName;
         this.about = about;
         this.online = online;
         this.lastSeen = lastSeen;
+        this.avatar = avatar;
     }
 }

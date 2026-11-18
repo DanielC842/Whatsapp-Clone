@@ -10,3 +10,8 @@ nexo-data/
 .vscode/
 nbproject/private/
 .DS_Store
+# Java portable que descargan run.bat / run.sh si el PC no tiene Java
+.jdk/
+.jdk-tmp/
+jdk.zip
+jdk.tar.gz

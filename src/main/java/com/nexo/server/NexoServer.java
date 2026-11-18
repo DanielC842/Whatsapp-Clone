@@ -208,11 +208,13 @@ public final class NexoServer {
         }
     }
 
-    synchronized void updateProfile(String me, String displayName, String about) {
+    synchronized void updateProfile(String me, String displayName, String about, byte[] avatar, boolean removeAvatar) {
         User u = db.users.get(me);
         if (u == null) return;
         if (displayName != null && !displayName.isBlank()) u.displayName = displayName.trim();
         if (about != null) u.about = about.trim();
+        if (removeAvatar) u.avatar = null;
+        else if (avatar != null && avatar.length <= 512 * 1024) u.avatar = avatar;
         db.save();
         broadcast(new Packet(Packet.Type.USER_UPDATE).put("user", u.toInfo(true)), null);
     }

@@ -59,6 +59,20 @@ public final class Icons {
         };
     }
 
+    /** Carita sonriente para el selector de emojis. */
+    public static Icon smiley(int size, Color color) {
+        return new Painted(size, color) {
+            @Override
+            void paint(Graphics2D g, float s) {
+                g.setStroke(new BasicStroke(s * 0.08f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                g.draw(new Ellipse2D.Float(s * 0.1f, s * 0.1f, s * 0.8f, s * 0.8f));
+                g.fill(new Ellipse2D.Float(s * 0.33f, s * 0.34f, s * 0.1f, s * 0.12f));
+                g.fill(new Ellipse2D.Float(s * 0.57f, s * 0.34f, s * 0.1f, s * 0.12f));
+                g.draw(new Arc2D.Float(s * 0.3f, s * 0.35f, s * 0.4f, s * 0.35f, 200, 140, Arc2D.OPEN));
+            }
+        };
+    }
+
     /** Clip para adjuntar archivos. */
     public static Icon attach(int size, Color color) {
         return new Painted(size, color) {
