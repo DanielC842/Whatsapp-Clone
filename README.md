@@ -47,6 +47,12 @@ Los scripts compilan el código con `javac` y lo ejecutan; no hace falta Maven n
 Si prefieres un IDE (NetBeans, IntelliJ, Eclipse), abre la carpeta como proyecto Maven
 (`pom.xml`) y ejecuta la clase `com.nexo.Main`.
 
+### Demo simplificada por consola
+
+En la carpeta [`demo-consola/`](demo-consola/README.md) hay una versión mínima del chat con
+solo tres clases (`Servidor`, `Usuario1` y `Usuario2`) que se ejecutan con **Run File** en
+NetBeans y chatean por la consola.
+
 ### Usuarios de ejemplo
 
 La primera vez que arranca, el servidor crea estos usuarios (contraseña `1234`):
